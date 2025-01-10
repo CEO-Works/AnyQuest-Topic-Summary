@@ -15,7 +15,7 @@ const upload = multer({ dest: 'uploads/' });
 
 // Predefined REST service endpoint
 const REST_SERVICE_URL = 'http://localhost:8080/run';
-const AQ_AGENT_KEY="13f823338ce491aebf04101111fe37c6";
+const AQ_AGENT_API_KEY="13f823338ce491aebf04101111fe37c6";
 
 // Middleware to parse JSON requests
 app.use(express.json());
@@ -60,7 +60,7 @@ app.post('/upload', upload.array('files'), async (req, res) => {
     // Forward the form data to the REST service
     const response = await axios.post(REST_SERVICE_URL, formData, {
       headers: {
-        'x-api-key': AQ_AGENT_KEY,
+        'x-api-key': AQ_AGENT_API_KEY,
         ...formData.getHeaders(),
       },
     });
