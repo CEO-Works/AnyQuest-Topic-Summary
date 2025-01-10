@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>File Upload</title>
+  <script>
+    // Establish WebSocket connection
+    const ws = new WebSocket('ws://' + window.location.host);
+    ws.onmessage = (event) => {
+      const output = document.getElementById('output');
+      output.textContent += '\n' + event.data;
+    };
+
+    // Handle form submission
+    async function handleFormSubmit(event) {
+      event.preventDefault(); // Prevent form from navigating away
+
+      const form = event.target;
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch(form.action, {
+          method: form.method,
+          body: formData,
+        });
+
+        const result = await response.text();
+        alert(result); // Optionally alert the user of success
+      } catch (error) {
+        console.error('Error submitting form:', error);
+        alert('An error occurred while submitting the form.');
+      }
+
+      form.reset(); // Clear the form
+    }
+  </script>
+</head>
+<body>
+  <h1>Upload Files</h1>
+  <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" onsubmit="handleFormSubmit(event)">
+    <label for="textField">Text Field:</label>
+    <input type="text" id="textField" name="textField" required><br><br>
+    <label for="fileInput">Select Files:</label>
+    <input type="file" id="fileInput" name="files" multiple><br><br>
+    <button type="submit">Submit</button>
+  </form>
+  <h2>Webhook Output</h2>
+  <pre id="output"></pre>
+</body>
+</html>

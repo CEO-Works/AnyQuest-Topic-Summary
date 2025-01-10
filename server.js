@@ -4,6 +4,7 @@ const axios = require('axios');
 const FormData = require('form-data');
 const path = require('path');
 const fs = require('fs');
+const { WebSocketServer } = require('ws');
 
 // Initialize the Express app
 const app = express();
@@ -14,31 +15,39 @@ const upload = multer({ dest: 'uploads/' });
 
 // Predefined REST service endpoint
 const REST_SERVICE_URL = 'http://localhost:8080/run';
-const AQ_AGENT_API_KEY="3c2c67ec1446fdebd471cbd8a5fb61ce";
+const AQ_AGENT_API_KEY = "3c2c67ec1446fdebd471cbd8a5fb61ce";
 
 // Middleware to parse JSON requests
 app.use(express.json());
 
-// Serve the HTML form
+// Serve the static `index.html` file
+app.use(express.static(path.join(__dirname)));
+
+// Set up WebSocket server
+const wss = new WebSocketServer({ noServer: true });
+let connectedClients = [];
+
+// Handle WebSocket connections
+wss.on('connection', (ws) => {
+  connectedClients.push(ws);
+  ws.on('close', () => {
+    connectedClients = connectedClients.filter((client) => client !== ws);
+  });
+});
+
+// Upgrade HTTP server to WebSocket server
+app.server = app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
+});
+app.server.on('upgrade', (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
+});
+
+// Serve the `index.html` file at root
 app.get('/', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>File Upload</title>
-    </head>
-    <body>
-      <h1>Upload Files</h1>
-      <form action="/upload" method="post" enctype="multipart/form-data">
-        <label for="textField">Text Field:</label>
-        <input type="text" id="textField" name="textField" required><br><br>
-        <label for="fileInput">Select Files:</label>
-        <input type="file" id="fileInput" name="files" multiple><br><br>
-        <button type="submit">Submit</button>
-      </form>
-    </body>
-    </html>
-  `);
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Handle form submission
@@ -68,7 +77,7 @@ app.post('/upload', upload.array('files'), async (req, res) => {
     req.files.forEach((file) => fs.unlinkSync(file.path));
 
     // Send response back to the client
-    res.send(`Files successfully forwarded! Server responded with: ${response.status} ${response.statusText}`);
+    res.send('Files successfully forwarded! Server responded with: ' + response.status + ' ' + response.statusText);
   } catch (error) {
     console.error('Error forwarding files:', error);
 
@@ -81,11 +90,14 @@ app.post('/upload', upload.array('files'), async (req, res) => {
 
 // Handle webhook POST requests
 app.post('/webhook', express.text({ type: '*/*' }), (req, res) => {
-    console.log('Webhook received:', req.body);
-    res.send('Webhook received successfully.');
-});
+  console.log('Webhook received:', req.body);
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  // Broadcast the webhook content to all connected WebSocket clients
+  connectedClients.forEach((ws) => {
+    if (ws.readyState === ws.OPEN) {
+      ws.send(req.body);
+    }
+  });
+
+  res.send('Webhook received successfully.');
 });
