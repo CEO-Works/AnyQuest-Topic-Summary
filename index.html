@@ -7,7 +7,7 @@
     const ws = new WebSocket('ws://' + window.location.host);
     ws.onmessage = (event) => {
       const output = document.getElementById('output');
-      output.textContent = '\nWebhook: ' + event.data;
+      output.textContent = event.data;
     };
 
     // Handle form submission
