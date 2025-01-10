@@ -16,6 +16,7 @@ const upload = multer({ dest: 'uploads/' });
 // Predefined REST service endpoint
 const REST_SERVICE_URL = 'http://localhost:8080/run';
 const AQ_AGENT_API_KEY = "3c2c67ec1446fdebd471cbd8a5fb61ce";
+const WEBHOOK_URL = "http://localhost:3000/webhook";
 
 // Middleware to parse JSON requests
 app.use(express.json());
@@ -58,7 +59,7 @@ app.post('/upload', upload.array('files'), async (req, res) => {
 
     // Append the text field
     formData.append('prompt', req.body.textField);
-    formData.append('webhook', "http://localhost:3000/webhook");
+    formData.append('webhook', WEBHOOK_URL);
 
     // Append the files
     req.files.forEach((file) => {
