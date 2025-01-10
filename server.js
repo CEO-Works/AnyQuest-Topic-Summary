@@ -15,7 +15,7 @@ const upload = multer({ dest: 'uploads/' });
 
 // Predefined REST service endpoint
 const REST_SERVICE_URL = 'http://localhost:8080/run';
-const AQ_AGENT_API_KEY="13f823338ce491aebf04101111fe37c6";
+const AQ_AGENT_API_KEY="3c2c67ec1446fdebd471cbd8a5fb61ce";
 
 // Middleware to parse JSON requests
 app.use(express.json());
@@ -34,7 +34,7 @@ app.get('/', (req, res) => {
         <label for="textField">Text Field:</label>
         <input type="text" id="textField" name="textField" required><br><br>
         <label for="fileInput">Select Files:</label>
-        <input type="file" id="fileInput" name="files" multiple required><br><br>
+        <input type="file" id="fileInput" name="files" multiple><br><br>
         <button type="submit">Submit</button>
       </form>
     </body>
