@@ -77,7 +77,7 @@ app.post('/upload', upload.array('files'), async (req, res) => {
     req.files.forEach((file) => fs.unlinkSync(file.path));
 
     // Send response back to the client
-    res.send('Files successfully forwarded! Server responded with: ' + response.status + ' ' + response.statusText);
+    res.send('Server responded with: ' + response.status + ' ' + response.statusText);
   } catch (error) {
     console.error('Error forwarding files:', error);
 
@@ -90,14 +90,11 @@ app.post('/upload', upload.array('files'), async (req, res) => {
 
 // Handle webhook POST requests
 app.post('/webhook', express.text({ type: '*/*' }), (req, res) => {
-  console.log('Webhook received:', req.body);
-
   // Broadcast the webhook content to all connected WebSocket clients
   connectedClients.forEach((ws) => {
     if (ws.readyState === ws.OPEN) {
       ws.send(req.body);
     }
   });
-
   res.send('Webhook received successfully.');
 });

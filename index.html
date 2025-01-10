@@ -7,7 +7,7 @@
     const ws = new WebSocket('ws://' + window.location.host);
     ws.onmessage = (event) => {
       const output = document.getElementById('output');
-      output.textContent += '\n' + event.data;
+      output.textContent = '\nWebhook: ' + event.data;
     };
 
     // Handle form submission
@@ -16,6 +16,7 @@
 
       const form = event.target;
       const formData = new FormData(form);
+      const output = document.getElementById('output');
 
       try {
         const response = await fetch(form.action, {
@@ -24,10 +25,10 @@
         });
 
         const result = await response.text();
-        alert(result); // Optionally alert the user of success
+        output.textContent = '\nForm Submission: ' + result;
       } catch (error) {
         console.error('Error submitting form:', error);
-        alert('An error occurred while submitting the form.');
+        output.textContent = '\nError: An error occurred while submitting the form.';
       }
 
       form.reset(); // Clear the form
@@ -43,7 +44,7 @@
     <input type="file" id="fileInput" name="files" multiple><br><br>
     <button type="submit">Submit</button>
   </form>
-  <h2>Webhook Output</h2>
+  <h2>Output</h2>
   <pre id="output"></pre>
 </body>
 </html>
