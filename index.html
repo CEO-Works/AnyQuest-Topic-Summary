@@ -37,8 +37,11 @@
         // Establish WebSocket connection
         const ws = new WebSocket('ws://' + window.location.host);
         ws.onmessage = (event) => {
-            const output = document.getElementById('output');
-            output.textContent = event.data;
+            const output_id= document.getElementById('output_id');
+            const output_content = document.getElementById('output_content');
+            const data = JSON.parse(event.data);
+            output_id.textContent = data.id;
+            output_content.textContent = data.content;
         };
 
         // Handle form submission
@@ -75,6 +78,7 @@
     <button type="submit">Submit</button>
 </form>
 <h2>Output</h2>
-<pre id="output"></pre>
+<p id="output_id"></p>
+<pre id="output_content"></pre>
 </body>
 </html>

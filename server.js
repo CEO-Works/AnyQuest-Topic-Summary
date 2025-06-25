@@ -5,6 +5,7 @@ const FormData = require('form-data');
 const path = require('path');
 const fs = require('fs');
 const { WebSocketServer } = require('ws');
+const {randomUUID} = require('crypto');
 
 // Initialize the Express app
 const app = express();
@@ -16,7 +17,7 @@ const upload = multer({ dest: 'uploads/' });
 // Predefined REST service endpoint
 const REST_SERVICE_URL = 'http://localhost:8080/run';
 const AQ_AGENT_API_KEY = "3c2c67ec1446fdebd471cbd8a5fb61ce";
-const WEBHOOK_URL = "http://localhost:3000/webhook";
+const WEBHOOK_URL = "http://localhost:3000/webhook/";
 
 // Middleware to parse JSON requests
 app.use(express.json());
@@ -59,7 +60,8 @@ app.post('/upload', upload.array('files'), async (req, res) => {
 
     // Append the text field
     formData.append('prompt', req.body.textField);
-    formData.append('webhook', WEBHOOK_URL);
+    const uuid = randomUUID();
+    formData.append('webhook', WEBHOOK_URL + uuid);
 
     // Append the files
     req.files.forEach((file) => {
@@ -90,11 +92,14 @@ app.post('/upload', upload.array('files'), async (req, res) => {
 });
 
 // Handle webhook POST requests
-app.post('/webhook', express.text({ type: '*/*' }), (req, res) => {
+app.post('/webhook/:id', express.text({type: '*/*'}), (req, res) => {
   // Broadcast the webhook content to all connected WebSocket clients
   connectedClients.forEach((ws) => {
     if (ws.readyState === ws.OPEN) {
-      ws.send(req.body);
+      ws.send(JSON.stringify({
+        id: req.params.id,
+        content: req.body
+      }));
     }
   });
   res.send('Webhook received successfully.');
