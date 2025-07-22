@@ -15,9 +15,9 @@ const port = 3000;
 const upload = multer({ dest: 'uploads/' });
 
 // Predefined REST service endpoint
-const REST_SERVICE_URL = 'http://localhost:8080';
-const AQ_AGENT_API_KEY = "efeaf6993a7a413bf99041ed86c36224";
-const WEBHOOK_URL = "http://localhost:3000/webhook/";
+const REST_SERVICE_URL = 'https://api.anyquest.ai';
+const AQ_AGENT_API_KEY = "<YOUR AGENT API KEY>";
+const WEBHOOK_URL = "https://<YOUR SERVER URL>/webhook/";
 
 // Middleware to parse JSON requests
 app.use(express.json());
