@@ -107,7 +107,11 @@ app.post('/webhook/:id', express.text({type: '*/*'}), (req, res) => {
     });
   } else if (eventType === "review") {
     const activityJobId = req.headers['aq-activity-job-id'];
+    const referenceId = req.headers['aq-reference-id'] || 'none';
+    const instructions = req.headers['aq-instructions'] || 'none';
     console.log("Advancing a request: " + activityJobId);
+    console.log("Reference ID: " + referenceId);
+    console.log("Instructions: " + instructions);
     const url = REST_SERVICE_URL + "/advance/" + activityJobId;
     setTimeout(() => {
       axios.post(url, {
