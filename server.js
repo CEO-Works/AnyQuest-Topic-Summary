@@ -15,8 +15,8 @@ const port = 3000;
 const upload = multer({ dest: 'uploads/' });
 
 // Predefined REST service endpoint
-const REST_SERVICE_URL = 'http://localhost:8080/run';
-const AQ_AGENT_API_KEY = "3c2c67ec1446fdebd471cbd8a5fb61ce";
+const REST_SERVICE_URL = 'http://localhost:8080';
+const AQ_AGENT_API_KEY = "efeaf6993a7a413bf99041ed86c36224";
 const WEBHOOK_URL = "http://localhost:3000/webhook/";
 
 // Middleware to parse JSON requests
@@ -62,6 +62,7 @@ app.post('/upload', upload.array('files'), async (req, res) => {
     formData.append('prompt', req.body.textField);
     const uuid = randomUUID();
     formData.append('webhook', WEBHOOK_URL + uuid);
+    // formData.append('workingFolderPath', "/Reports");
 
     // Append the files
     req.files.forEach((file) => {
@@ -69,7 +70,7 @@ app.post('/upload', upload.array('files'), async (req, res) => {
     });
 
     // Forward the form data to the REST service
-    const response = await axios.post(REST_SERVICE_URL, formData, {
+    const response = await axios.post(REST_SERVICE_URL + "/run", formData, {
       headers: {
         'x-api-key': AQ_AGENT_API_KEY,
         ...formData.getHeaders(),
@@ -93,14 +94,32 @@ app.post('/upload', upload.array('files'), async (req, res) => {
 
 // Handle webhook POST requests
 app.post('/webhook/:id', express.text({type: '*/*'}), (req, res) => {
-  // Broadcast the webhook content to all connected WebSocket clients
-  connectedClients.forEach((ws) => {
-    if (ws.readyState === ws.OPEN) {
-      ws.send(JSON.stringify({
-        id: req.params.id,
-        content: req.body
-      }));
-    }
-  });
+  const eventType = req.headers['aq-event-type'];
+  if (eventType === "response") {
+    console.log("Completing a request");
+    connectedClients.forEach((ws) => {
+      if (ws.readyState === ws.OPEN) {
+        ws.send(JSON.stringify({
+          id: req.params.id,
+          content: req.body
+        }));
+      }
+    });
+  } else if (eventType === "review") {
+    const activityJobId = req.headers['aq-activity-job-id'];
+    console.log("Advancing a request: " + activityJobId);
+    const url = REST_SERVICE_URL + "/advance/" + activityJobId;
+    setTimeout(() => {
+      axios.post(url, {
+        content: "### Approved\n\n" + req.body
+      }, {
+        headers: {
+          'x-api-key': AQ_AGENT_API_KEY
+        }
+      }).catch((error) => {
+        console.error('Error advancing activity job:', error);
+      });
+    }, 2000);
+  }
   res.send('Webhook received successfully.');
 });
