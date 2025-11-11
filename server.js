@@ -58,6 +58,10 @@ app.post('/submit-topic', async (req, res) => {
     // Generate unique ID for webhook tracking
     const uuid = randomUUID();
 
+    console.log('Submitting topic:', req.body.topic);
+    console.log('Webhook URL:', WEBHOOK_URL + uuid);
+    console.log('API URL:', REST_SERVICE_URL + "/run");
+
     // Send topic prompt to AnyQuest API
     const response = await axios.post(REST_SERVICE_URL + "/run", {
       prompt: req.body.topic,
@@ -73,7 +77,8 @@ app.post('/submit-topic', async (req, res) => {
     res.send('Server responded with: ' + response.status + ' ' + response.statusText);
   } catch (error) {
     console.error('Error submitting topic:', error);
-    res.status(500).send('An error occurred while submitting the topic.');
+    console.error('Error details:', error.response?.data || error.message);
+    res.status(500).send('An error occurred while submitting the topic: ' + (error.response?.data?.message || error.message));
   }
 });
 
