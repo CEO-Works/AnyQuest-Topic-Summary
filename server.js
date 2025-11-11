@@ -133,10 +133,15 @@ app.post('/submit-topic', async (req, res) => {
 // Handle webhook POST requests
 app.post('/webhook/:id', express.text({type: '*/*'}), (req, res) => {
   const eventType = req.headers['aq-event-type'];
+  console.log('Webhook received - ID:', req.params.id, 'Event Type:', eventType);
+  console.log('Connected clients:', connectedClients.length);
+
   if (eventType === "response") {
     console.log("Completing a request");
+    console.log("Response content:", req.body.substring(0, 200)); // Log first 200 chars
     connectedClients.forEach((ws) => {
       if (ws.readyState === ws.OPEN) {
+        console.log('Sending response to WebSocket client');
         ws.send(JSON.stringify({
           id: req.params.id,
           content: req.body
