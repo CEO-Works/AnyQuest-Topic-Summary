@@ -1,7 +1,7 @@
 const express = require('express');
 // const multer = require('multer');
 const axios = require('axios');
-// const FormData = require('form-data');
+const FormData = require('form-data');
 const path = require('path');
 // const fs = require('fs');
 const { WebSocketServer } = require('ws');
@@ -62,14 +62,16 @@ app.post('/submit-topic', async (req, res) => {
     console.log('Webhook URL:', WEBHOOK_URL + uuid);
     console.log('API URL:', REST_SERVICE_URL + "/run");
 
+    // Create FormData (AnyQuest API expects multipart/form-data, not JSON)
+    const formData = new FormData();
+    formData.append('prompt', req.body.topic);
+    formData.append('webhook', WEBHOOK_URL + uuid);
+
     // Send topic prompt to AnyQuest API
-    const response = await axios.post(REST_SERVICE_URL + "/run", {
-      prompt: req.body.topic,
-      webhook: WEBHOOK_URL + uuid
-    }, {
+    const response = await axios.post(REST_SERVICE_URL + "/run", formData, {
       headers: {
         'x-api-key': AQ_AGENT_API_KEY,
-        'Content-Type': 'application/json'
+        ...formData.getHeaders(),
       },
     });
 
