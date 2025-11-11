@@ -57,7 +57,21 @@
     </style>
     <script>
         // Establish WebSocket connection
-        const ws = new WebSocket('ws://' + window.location.host);
+        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const ws = new WebSocket(protocol + window.location.host);
+
+        ws.onopen = () => {
+            console.log('WebSocket connected');
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+
+        ws.onclose = () => {
+            console.log('WebSocket disconnected');
+        };
+
         ws.onmessage = (event) => {
             const output_id = document.getElementById('output_id');
             const output_content = document.getElementById('output_content');
