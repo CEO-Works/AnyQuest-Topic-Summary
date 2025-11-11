@@ -40,6 +40,10 @@ wss.on('connection', (ws) => {
 // Upgrade HTTP server to WebSocket server
 app.server = app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
+  console.log('Configuration:');
+  console.log('- REST_SERVICE_URL:', REST_SERVICE_URL);
+  console.log('- WEBHOOK_URL:', WEBHOOK_URL);
+  console.log('- AQ_AGENT_API_KEY:', AQ_AGENT_API_KEY ? '***set***' : 'NOT SET');
 });
 app.server.on('upgrade', (request, socket, head) => {
   wss.handleUpgrade(request, socket, head, (ws) => {
@@ -78,9 +82,11 @@ app.post('/submit-topic', async (req, res) => {
     // Send response back to the client
     res.send('Server responded with: ' + response.status + ' ' + response.statusText);
   } catch (error) {
-    console.error('Error submitting topic:', error);
-    console.error('Error details:', error.response?.data || error.message);
-    res.status(500).send('An error occurred while submitting the topic: ' + (error.response?.data?.message || error.message));
+    console.error('Error submitting topic:', error.message);
+    console.error('Error status:', error.response?.status);
+    console.error('Error response data:', JSON.stringify(error.response?.data));
+    console.error('Request data:', { prompt: req.body.topic, webhook: WEBHOOK_URL + uuid });
+    res.status(500).send('An error occurred while submitting the topic: ' + (error.response?.status || error.message));
   }
 });
 
