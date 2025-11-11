@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>File Upload</title>
+    <title>Topic Summary Generator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0 1rem;
         }
-        
+
         h1, h2 {
             text-align: center;
         }
@@ -16,7 +16,7 @@
             display: flex;
             flex-direction: column;
             gap: 1rem;
-            max-width: 400px;
+            max-width: 600px;
             margin: 2rem auto;
         }
 
@@ -24,23 +24,45 @@
             font-weight: bold;
         }
 
-        textarea, input[type="file"], button {
+        input[type="text"], button {
             padding: 0.5rem;
             font-family: Arial, sans-serif;
+            font-size: 1rem;
         }
 
-        textarea {
-            resize: vertical;
+        input[type="text"] {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #output_content {
+            white-space: pre-wrap;
+            background-color: #f5f5f5;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
         }
     </style>
     <script>
         // Establish WebSocket connection
         const ws = new WebSocket('ws://' + window.location.host);
         ws.onmessage = (event) => {
-            const output_id= document.getElementById('output_id');
+            const output_id = document.getElementById('output_id');
             const output_content = document.getElementById('output_content');
             const data = JSON.parse(event.data);
-            output_id.textContent = data.id;
+            output_id.textContent = 'Request ID: ' + data.id;
             output_content.textContent = data.content;
         };
 
@@ -48,37 +70,48 @@
         async function handleFormSubmit(event) {
             event.preventDefault(); // Prevent form from navigating away
 
-            const form = event.target;
-            const formData = new FormData(form);
+            const topicInput = document.getElementById('topicInput');
             const output = document.getElementById('output');
+            const output_content = document.getElementById('output_content');
+
+            // Show loading state
+            output.textContent = 'Submitting topic...';
+            output_content.textContent = 'Waiting for LLM response...';
 
             try {
-                const response = await fetch(form.action, {
-                    method: form.method,
-                    body: formData,
+                const response = await fetch('/submit-topic', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ topic: topicInput.value }),
                 });
                 const result = await response.text();
-                output.textContent = '\nForm Submission: ' + result;
+                output.textContent = 'Form Submission: ' + result;
             } catch (error) {
                 console.error('Error submitting form:', error);
-                output.textContent = '\nError: An error occurred while submitting the form.';
+                output.textContent = 'Error: An error occurred while submitting the topic.';
+                output_content.textContent = '';
             }
 
-            form.reset(); // Clear the form
+            // Clear the form
+            topicInput.value = '';
         }
     </script>
 </head>
 <body>
-<h1>AnyQuest Agent Relay</h1>
-<form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" onsubmit="handleFormSubmit(event)">
-    <label for="textField">Prompt:</label>
-    <textarea id="textField" name="textField" rows="2" required></textarea>
-    <label for="fileInput">Attachments:</label>
-    <input type="file" id="fileInput" name="files" multiple>
-    <button type="submit">Submit</button>
+<h1>Topic Summary Generator</h1>
+<p style="text-align: center; color: #666;">Enter a topic and receive an AI-generated summary</p>
+
+<form id="topicForm" onsubmit="handleFormSubmit(event)">
+    <label for="topicInput">Topic:</label>
+    <input type="text" id="topicInput" name="topic" placeholder="e.g., Quantum Computing, Climate Change, etc." required>
+    <button type="submit">Generate Summary</button>
 </form>
-<h2>Output</h2>
-<p id="output_id"></p>
+
+<h2>Response</h2>
+<p id="output"></p>
+<p id="output_id" style="color: #666; font-size: 0.9rem;"></p>
 <pre id="output_content"></pre>
 </body>
 </html>

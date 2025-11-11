@@ -1,23 +1,23 @@
 const express = require('express');
-const multer = require('multer');
+// const multer = require('multer');
 const axios = require('axios');
-const FormData = require('form-data');
+// const FormData = require('form-data');
 const path = require('path');
-const fs = require('fs');
+// const fs = require('fs');
 const { WebSocketServer } = require('ws');
 const {randomUUID} = require('crypto');
 
 // Initialize the Express app
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // Set up Multer for file uploads
-const upload = multer({ dest: 'uploads/' });
+// const upload = multer({ dest: 'uploads/' });
 
 // Predefined REST service endpoint
-const REST_SERVICE_URL = 'https://api.anyquest.ai';
-const AQ_AGENT_API_KEY = "<YOUR AGENT API KEY>";
-const WEBHOOK_URL = "https://<YOUR SERVER URL>/webhook/";
+const REST_SERVICE_URL = process.env.REST_SERVICE_URL || 'https://api.anyquest.ai';
+const AQ_AGENT_API_KEY = process.env.AQ_AGENT_API_KEY || "9a7d4376e010912ba613562d166811e9";
+const WEBHOOK_URL = process.env.WEBHOOK_URL || "https://<YOUR SERVER URL>/webhook/";
 
 // Middleware to parse JSON requests
 app.use(express.json());
@@ -52,45 +52,70 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Handle form submission
-app.post('/upload', upload.array('files'), async (req, res) => {
+// Handle topic submission (text-only, no files)
+app.post('/submit-topic', async (req, res) => {
   try {
-    // Create a new FormData instance
-    const formData = new FormData();
-
-    // Append the text field
-    formData.append('prompt', req.body.textField);
+    // Generate unique ID for webhook tracking
     const uuid = randomUUID();
-    formData.append('webhook', WEBHOOK_URL + uuid);
-    // formData.append('workingFolderPath', "/Reports");
 
-    // Append the files
-    req.files.forEach((file) => {
-      formData.append('files', fs.createReadStream(file.path), file.originalname);
-    });
-
-    // Forward the form data to the REST service
-    const response = await axios.post(REST_SERVICE_URL + "/run", formData, {
+    // Send topic prompt to AnyQuest API
+    const response = await axios.post(REST_SERVICE_URL + "/run", {
+      prompt: req.body.topic,
+      webhook: WEBHOOK_URL + uuid
+    }, {
       headers: {
         'x-api-key': AQ_AGENT_API_KEY,
-        ...formData.getHeaders(),
+        'Content-Type': 'application/json'
       },
     });
-
-    // Clean up uploaded files
-    req.files.forEach((file) => fs.unlinkSync(file.path));
 
     // Send response back to the client
     res.send('Server responded with: ' + response.status + ' ' + response.statusText);
   } catch (error) {
-    console.error('Error forwarding files:', error);
-
-    // Clean up uploaded files
-    req.files.forEach((file) => fs.unlinkSync(file.path));
-
-    res.status(500).send('An error occurred while forwarding the files.');
+    console.error('Error submitting topic:', error);
+    res.status(500).send('An error occurred while submitting the topic.');
   }
 });
+
+// COMMENTED OUT: Original file upload endpoint
+// app.post('/upload', upload.array('files'), async (req, res) => {
+//   try {
+//     // Create a new FormData instance
+//     const formData = new FormData();
+//
+//     // Append the text field
+//     formData.append('prompt', req.body.textField);
+//     const uuid = randomUUID();
+//     formData.append('webhook', WEBHOOK_URL + uuid);
+//     // formData.append('workingFolderPath', "/Reports");
+//
+//     // Append the files
+//     req.files.forEach((file) => {
+//       formData.append('files', fs.createReadStream(file.path), file.originalname);
+//     });
+//
+//     // Forward the form data to the REST service
+//     const response = await axios.post(REST_SERVICE_URL + "/run", formData, {
+//       headers: {
+//         'x-api-key': AQ_AGENT_API_KEY,
+//         ...formData.getHeaders(),
+//       },
+//     });
+//
+//     // Clean up uploaded files
+//     req.files.forEach((file) => fs.unlinkSync(file.path));
+//
+//     // Send response back to the client
+//     res.send('Server responded with: ' + response.status + ' ' + response.statusText);
+//   } catch (error) {
+//     console.error('Error forwarding files:', error);
+//
+//     // Clean up uploaded files
+//     req.files.forEach((file) => fs.unlinkSync(file.path));
+//
+//     res.status(500).send('An error occurred while forwarding the files.');
+//   }
+// });
 
 // Handle webhook POST requests
 app.post('/webhook/:id', express.text({type: '*/*'}), (req, res) => {
