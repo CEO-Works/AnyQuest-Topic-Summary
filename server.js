@@ -80,8 +80,13 @@ app.post('/submit-topic', async (req, res) => {
       },
     });
 
-    // Send response back to the client
-    res.send('Server responded with: ' + response.status + ' ' + response.statusText);
+    // Send response back to the client with webhook ID
+    res.json({
+      success: true,
+      message: 'Server responded with: ' + response.status + ' ' + response.statusText,
+      webhookId: uuid,
+      jobId: response.data.jobId
+    });
   } catch (error) {
     console.error('Error submitting topic:', error.message);
     console.error('Error status:', error.response?.status);

@@ -56,43 +56,26 @@
         }
     </style>
     <script>
-        // Establish WebSocket connection
-        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-        const ws = new WebSocket(protocol + window.location.host);
-
-        ws.onopen = () => {
-            console.log('WebSocket connected');
-        };
-
-        ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-        };
-
-        ws.onclose = () => {
-            console.log('WebSocket disconnected');
-        };
-
-        ws.onmessage = (event) => {
-            const output_id = document.getElementById('output_id');
-            const output_content = document.getElementById('output_content');
-            const data = JSON.parse(event.data);
-            output_id.textContent = 'Request ID: ' + data.id;
-            output_content.textContent = data.content;
-        };
+        // Use the standalone webhook relay service
+        const RELAY_WS_URL = 'wss://anyquest-webhook-relay-production-863f.up.railway.app';
+        let currentWebSocket = null;
 
         // Handle form submission
         async function handleFormSubmit(event) {
-            event.preventDefault(); // Prevent form from navigating away
+            event.preventDefault();
 
             const topicInput = document.getElementById('topicInput');
             const output = document.getElementById('output');
             const output_content = document.getElementById('output_content');
+            const output_id = document.getElementById('output_id');
 
             // Show loading state
             output.textContent = 'Submitting topic...';
             output_content.textContent = 'Waiting for LLM response...';
+            output_id.textContent = '';
 
             try {
+                // Submit the topic and get the webhook ID back
                 const response = await fetch('/submit-topic', {
                     method: 'POST',
                     headers: {
@@ -100,8 +83,47 @@
                     },
                     body: JSON.stringify({ topic: topicInput.value }),
                 });
-                const result = await response.text();
-                output.textContent = 'Form Submission: ' + result;
+
+                const result = await response.json();
+                const webhookId = result.webhookId;
+
+                output.textContent = 'Form Submission: ' + result.message;
+                output_id.textContent = 'Webhook ID: ' + webhookId;
+                console.log('Job ID:', result.jobId);
+
+                // Close existing WebSocket if any
+                if (currentWebSocket) {
+                    currentWebSocket.close();
+                }
+
+                // Connect to relay WebSocket with the webhook ID
+                const wsUrl = `${RELAY_WS_URL}/ws?id=${webhookId}`;
+                console.log('Connecting to WebSocket:', wsUrl);
+                currentWebSocket = new WebSocket(wsUrl);
+
+                currentWebSocket.onopen = () => {
+                    console.log('WebSocket connected for webhook ID:', webhookId);
+                    output.textContent = 'Connected! Waiting for LLM response...';
+                };
+
+                currentWebSocket.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    output.textContent = 'WebSocket connection error';
+                };
+
+                currentWebSocket.onclose = () => {
+                    console.log('WebSocket disconnected');
+                };
+
+                currentWebSocket.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    console.log('Received webhook response:', data);
+
+                    output_id.textContent = 'Request ID: ' + data.id;
+                    output_content.textContent = data.content;
+                    output.textContent = 'Response received!';
+                };
+
             } catch (error) {
                 console.error('Error submitting form:', error);
                 output.textContent = 'Error: An error occurred while submitting the topic.';
