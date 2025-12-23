@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Agent Management - Admin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+            background-color: #f5f5f5;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .agents-list {
+            margin-bottom: 2rem;
+        }
+
+        .agent-card {
+            border: 1px solid #ddd;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+
+        .agent-card h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+
+        .agent-card button {
+            margin-right: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .form-section {
+            border-top: 2px solid #007bff;
+            padding-top: 2rem;
+            margin-top: 2rem;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        input[type="text"], textarea {
+            padding: 0.5rem;
+            font-family: Arial, sans-serif;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            min-height: 100px;
+            font-family: monospace;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button.danger {
+            background-color: #dc3545;
+        }
+
+        button.danger:hover {
+            background-color: #c82333;
+        }
+
+        button.secondary {
+            background-color: #6c757d;
+        }
+
+        button.secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .field-group {
+            border: 1px solid #ddd;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+
+        .field-group input, .field-group select {
+            margin-bottom: 0.5rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .message {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Main</a>
+        <h1>Agent Management</h1>
+
+        <div id="message" class="message hidden"></div>
+
+        <div class="agents-list">
+            <h2>Existing Agents</h2>
+            <div id="agentsList"></div>
+        </div>
+
+        <div class="form-section">
+            <h2 id="formTitle">Add New Agent</h2>
+            <form id="agentForm">
+                <div>
+                    <label for="agentId">Agent ID (unique identifier, e.g., my-agent):</label>
+                    <input type="text" id="agentId" name="agentId" required pattern="[a-z0-9-]+"
+                           title="Only lowercase letters, numbers, and hyphens">
+                </div>
+
+                <div>
+                    <label for="name">Agent Name (display name):</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+
+                <div>
+                    <label for="apiKey">API Key:</label>
+                    <input type="text" id="apiKey" name="apiKey" required>
+                </div>
+
+                <div>
+                    <label for="description">Description:</label>
+                    <input type="text" id="description" name="description">
+                </div>
+
+                <div>
+                    <label>Fields Configuration:</label>
+                    <div id="fieldsContainer"></div>
+                    <button type="button" class="secondary" onclick="addField()">+ Add Field</button>
+                </div>
+
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit">Save Agent</button>
+                    <button type="button" class="secondary" onclick="resetForm()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let editingAgentId = null;
+
+        // Load all agents on page load
+        async function loadAgents() {
+            try {
+                const response = await fetch('/agents');
+                const data = await response.json();
+
+                const agentsList = document.getElementById('agentsList');
+                agentsList.innerHTML = '';
+
+                if (Object.keys(data.agents).length === 0) {
+                    agentsList.innerHTML = '<p style="color: #666;">No agents configured yet. Add one below!</p>';
+                    return;
+                }
+
+                for (const [agentId, agent] of Object.entries(data.agents)) {
+                    const card = document.createElement('div');
+                    card.className = 'agent-card';
+                    card.innerHTML = `
+                        <h3>${agent.name}</h3>
+                        <p><strong>ID:</strong> ${agentId}</p>
+                        <p><strong>Description:</strong> ${agent.description || 'N/A'}</p>
+                        <p><strong>Fields:</strong> ${agent.fields.map(f => f.name).join(', ')}</p>
+                        <button onclick="editAgent('${agentId}')">Edit</button>
+                        <button class="danger" onclick="deleteAgent('${agentId}')">Delete</button>
+                    `;
+                    agentsList.appendChild(card);
+                }
+            } catch (error) {
+                showMessage('Error loading agents: ' + error.message, 'error');
+            }
+        }
+
+        // Edit an existing agent
+        async function editAgent(agentId) {
+            try {
+                const response = await fetch(`/agents/${agentId}`);
+                const agent = await response.json();
+
+                editingAgentId = agentId;
+                document.getElementById('formTitle').textContent = 'Edit Agent';
+                document.getElementById('agentId').value = agentId;
+                document.getElementById('agentId').disabled = true;
+                document.getElementById('name').value = agent.name;
+                document.getElementById('apiKey').value = agent.apiKey;
+                document.getElementById('description').value = agent.description || '';
+
+                // Load fields
+                const fieldsContainer = document.getElementById('fieldsContainer');
+                fieldsContainer.innerHTML = '';
+                agent.fields.forEach(field => {
+                    addField(field);
+                });
+
+                // Scroll to form
+                document.getElementById('agentForm').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                showMessage('Error loading agent: ' + error.message, 'error');
+            }
+        }
+
+        // Delete an agent
+        async function deleteAgent(agentId) {
+            if (!confirm(`Are you sure you want to delete agent "${agentId}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/agents/${agentId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('Agent deleted successfully!', 'success');
+                    loadAgents();
+                } else {
+                    showMessage('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error deleting agent: ' + error.message, 'error');
+            }
+        }
+
+        // Add a new field to the form
+        function addField(fieldData = null) {
+            const fieldsContainer = document.getElementById('fieldsContainer');
+            const fieldIndex = fieldsContainer.children.length;
+
+            const fieldGroup = document.createElement('div');
+            fieldGroup.className = 'field-group';
+            fieldGroup.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; align-items: end;">
+                    <div>
+                        <label>Field Name:</label>
+                        <input type="text" class="field-name" value="${fieldData?.name || ''}" required>
+                    </div>
+                    <div>
+                        <label>Type:</label>
+                        <select class="field-type">
+                            <option value="text" ${fieldData?.type === 'text' ? 'selected' : ''}>Text</option>
+                            <option value="textarea" ${fieldData?.type === 'textarea' ? 'selected' : ''}>Textarea</option>
+                            <option value="file" ${fieldData?.type === 'file' ? 'selected' : ''}>File</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Label:</label>
+                        <input type="text" class="field-label" value="${fieldData?.label || ''}" required>
+                    </div>
+                    <div>
+                        <button type="button" class="danger" onclick="this.parentElement.parentElement.parentElement.remove()">Remove</button>
+                    </div>
+                </div>
+                <div style="margin-top: 0.5rem;">
+                    <label>Placeholder (optional):</label>
+                    <input type="text" class="field-placeholder" value="${fieldData?.placeholder || ''}">
+                </div>
+                <div style="margin-top: 0.5rem;">
+                    <label>
+                        <input type="checkbox" class="field-required" ${fieldData?.required ? 'checked' : ''}>
+                        Required
+                    </label>
+                    <label style="margin-left: 1rem;">
+                        <input type="checkbox" class="field-multiple" ${fieldData?.multiple ? 'checked' : ''}>
+                        Multiple (for files)
+                    </label>
+                </div>
+            `;
+
+            fieldsContainer.appendChild(fieldGroup);
+        }
+
+        // Handle form submission
+        document.getElementById('agentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const agentId = document.getElementById('agentId').value;
+            const name = document.getElementById('name').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const description = document.getElementById('description').value;
+
+            // Collect fields
+            const fields = [];
+            const fieldGroups = document.querySelectorAll('.field-group');
+            fieldGroups.forEach(group => {
+                const field = {
+                    name: group.querySelector('.field-name').value,
+                    type: group.querySelector('.field-type').value,
+                    label: group.querySelector('.field-label').value,
+                    placeholder: group.querySelector('.field-placeholder').value,
+                    required: group.querySelector('.field-required').checked,
+                    multiple: group.querySelector('.field-multiple').checked
+                };
+                fields.push(field);
+            });
+
+            if (fields.length === 0) {
+                showMessage('Please add at least one field', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/agents/${agentId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name,
+                        apiKey,
+                        description,
+                        fields
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('Agent saved successfully!', 'success');
+                    resetForm();
+                    loadAgents();
+                } else {
+                    showMessage('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showMessage('Error saving agent: ' + error.message, 'error');
+            }
+        });
+
+        // Reset the form
+        function resetForm() {
+            editingAgentId = null;
+            document.getElementById('formTitle').textContent = 'Add New Agent';
+            document.getElementById('agentForm').reset();
+            document.getElementById('agentId').disabled = false;
+            document.getElementById('fieldsContainer').innerHTML = '';
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.classList.remove('hidden');
+
+            setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Load agents on page load
+        window.addEventListener('DOMContentLoaded', loadAgents);
+    </script>
+</body>
+</html>

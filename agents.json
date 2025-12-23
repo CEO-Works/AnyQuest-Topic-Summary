@@ -1,0 +1,68 @@
+{
+  "agents": {
+    "file-upload-agent": {
+      "name": "File Upload Agent",
+      "apiKey": "",
+      "description": "Upload files with a prompt for processing",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "textarea",
+          "label": "Prompt",
+          "placeholder": "Enter your instructions...",
+          "required": true
+        },
+        {
+          "name": "workingFolder",
+          "type": "text",
+          "label": "Working Folder",
+          "placeholder": "/Reports",
+          "required": true
+        },
+        {
+          "name": "files",
+          "type": "file",
+          "label": "Attachments",
+          "required": true,
+          "multiple": true
+        }
+      ]
+    },
+    "test-dynamic-file": {
+      "name": "Test Dynamic File Processing",
+      "apiKey": "",
+      "description": "Process files in a specified folder",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "textarea",
+          "label": "Prompt",
+          "placeholder": "Enter your instructions...",
+          "required": true
+        },
+        {
+          "name": "workingFolder",
+          "type": "text",
+          "label": "Working Folder",
+          "placeholder": "/Data",
+          "required": true
+        }
+      ]
+    },
+    "generic-prompt-agent": {
+      "name": "Generic Prompt Agent",
+      "apiKey": "84c0d5a342fc4a6880b4877384e5e3ae",
+      "description": "This agent runs a prompt",
+      "fields": [
+        {
+          "name": "Prompt",
+          "type": "text",
+          "label": "Enter the prompt you want to execute",
+          "placeholder": "",
+          "required": true,
+          "multiple": false
+        }
+      ]
+    }
+  }
+}
